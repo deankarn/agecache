@@ -39,24 +39,24 @@ func TestBasicSetGet(t *testing.T) {
 	cache.Set("foo", 1)
 	cache.Set("bar", 2)
 
-	val, ok := cache.Get("foo")
-	assert.True(t, ok)
-	assert.Equal(t, 1, val)
+	val := cache.Get("foo")
+	assert.True(t, val.IsSome())
+	assert.Equal(t, 1, val.Unwrap())
 
-	val, ok = cache.Get("bar")
-	assert.True(t, ok)
-	assert.Equal(t, 2, val)
+	val = cache.Get("bar")
+	assert.True(t, val.IsSome())
+	assert.Equal(t, 2, val.Unwrap())
 }
 
 func TestBasicSetOverwrite(t *testing.T) {
 	cache := New(Config[string, int]{Capacity: 2})
 	cache.Set("foo", 1)
 	evict := cache.Set("foo", 2)
-	val, ok := cache.Get("foo")
+	val := cache.Get("foo")
 
 	assert.False(t, evict)
-	assert.True(t, ok)
-	assert.Equal(t, 2, val)
+	assert.True(t, val.IsSome())
+	assert.Equal(t, 2, val.Unwrap())
 }
 
 func TestEviction(t *testing.T) {
@@ -74,11 +74,10 @@ func TestEviction(t *testing.T) {
 	cache.Set("foo", 1)
 	cache.Set("bar", 2)
 	evict := cache.Set("baz", 3)
-	val, ok := cache.Get("foo")
+	val := cache.Get("foo")
 
 	assert.True(t, evict)
-	assert.False(t, ok)
-	assert.Zero(t, val)
+	assert.False(t, val.IsSome())
 	assert.Equal(t, "foo", k)
 	assert.Equal(t, 1, v)
 }
@@ -103,9 +102,8 @@ func TestExpiration(t *testing.T) {
 	cache.Set("foo", 1)
 	<-time.After(time.Millisecond * 2)
 
-	val, ok := cache.Get("foo")
-	assert.False(t, ok)
-	assert.Zero(t, val)
+	val := cache.Get("foo")
+	assert.False(t, val.IsSome())
 	assert.Equal(t, "foo", k)
 	assert.Equal(t, 1, v)
 	assert.False(t, eviction)
@@ -139,31 +137,31 @@ func TestJitter(t *testing.T) {
 	}
 
 	cache.Set("foo", "bar") // 300ms
-	_, ok := cache.Get("foo")
-	assert.True(t, ok)
+	val := cache.Get("foo")
+	assert.True(t, val.IsSome())
 
 	time.Sleep(50 * time.Millisecond)
-	_, ok = cache.Get("foo")
-	assert.False(t, ok)
+	val = cache.Get("foo")
+	assert.False(t, val.IsSome())
 
 	cache.Set("foo", "bar") // 250ms
 	time.Sleep(100 * time.Millisecond)
-	_, ok = cache.Get("foo")
-	assert.False(t, ok)
+	val = cache.Get("foo")
+	assert.False(t, val.IsSome())
 
 	cache.Set("foo", "bar") // 200ms
 	time.Sleep(50 * time.Millisecond)
-	_, ok = cache.Get("foo")
-	assert.True(t, ok)
+	val = cache.Get("foo")
+	assert.True(t, val.IsSome())
 
 	cache.Set("foo", "bar") // 150ms
 	time.Sleep(100 * time.Millisecond)
-	_, ok = cache.Get("foo")
-	assert.True(t, ok)
+	val = cache.Get("foo")
+	assert.True(t, val.IsSome())
 
 	time.Sleep(100 * time.Millisecond)
-	_, ok = cache.Get("foo")
-	assert.False(t, ok)
+	val = cache.Get("foo")
+	assert.False(t, val.IsSome())
 }
 
 func TestHas(t *testing.T) {
@@ -201,9 +199,8 @@ func TestRemove(t *testing.T) {
 	assert.True(t, ok)
 	assert.False(t, eviction)
 
-	val, ok := cache.Get("foo")
-	assert.False(t, ok)
-	assert.Zero(t, val)
+	val := cache.Get("foo")
+	assert.False(t, val.IsSome())
 }
 
 func TestEvictOldest(t *testing.T) {
@@ -222,9 +219,8 @@ func TestEvictOldest(t *testing.T) {
 	assert.True(t, ok)
 	assert.True(t, eviction)
 
-	val, ok := cache.Get("foo")
-	assert.False(t, ok)
-	assert.Zero(t, val)
+	val := cache.Get("foo")
+	assert.False(t, val.IsSome())
 
 	eviction = false
 	ok = cache.EvictOldest()
@@ -252,8 +248,8 @@ func TestClear(t *testing.T) {
 	cache.Clear()
 
 	for i := 0; i <= 9; i++ {
-		_, ok := cache.Get(i)
-		assert.False(t, ok)
+		val := cache.Get(i)
+		assert.False(t, val.IsSome())
 	}
 	assert.Equal(t, 0, cache.Len())
 }

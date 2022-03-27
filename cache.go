@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+
+	opt "github.com/go-playground/pkg/values/option"
 )
 
 // Stats hold cache statistics.
@@ -201,7 +203,7 @@ func (cache *Cache[K, V]) Set(key K, value V) bool {
 // Get returns the value stored at `key`. The boolean value reports whether
 //  the value was found. The OnExpiration callback is invoked if the value
 // had expired on access
-func (cache *Cache[K, V]) Get(key K) (value V, found bool) {
+func (cache *Cache[K, V]) Get(key K) opt.Option[V] {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
@@ -212,7 +214,7 @@ func (cache *Cache[K, V]) Get(key K) (value V, found bool) {
 		if cache.maxAge == 0 || time.Since(entry.timestamp) <= cache.maxAge {
 			cache.evictionList.MoveToFront(element)
 			cache.hits++
-			return entry.value, true
+			return opt.Some(entry.value)
 		}
 
 		// Entry expired
@@ -221,11 +223,11 @@ func (cache *Cache[K, V]) Get(key K) (value V, found bool) {
 		if cache.onExpiration != nil {
 			cache.onExpiration(entry.key, entry.value)
 		}
-		return value, false
+		return opt.None[V]()
 	}
 
 	cache.misses++
-	return value, false
+	return opt.None[V]()
 }
 
 // Has returns whether the `key` is in the cache without updating
